@@ -61,6 +61,7 @@ def launch_setup(context, *args, **kwargs):
     initial_joint_controller = LaunchConfiguration("initial_joint_controller")
     launch_rviz = LaunchConfiguration("launch_rviz")
     gazebo_gui = LaunchConfiguration("gazebo_gui")
+    gazebo_ros_dir = get_package_share_directory('gazebo_ros')
 
     initial_joint_controllers = PathJoinSubstitution(
         [FindPackageShare(runtime_config_package), "config", controllers_file]
@@ -150,20 +151,26 @@ def launch_setup(context, *args, **kwargs):
     )
 
     world = os.path.join(
-        get_package_share_directory('turtlebot3_gazebo'),
+        get_package_share_directory('ur_simulation_gazebo'),
         'worlds',
         'ur5e.world'
     )
 
     # Gazebo nodes
-    gazebo = IncludeLaunchDescription(
+    gazebo_server = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [FindPackageShare("gazebo_ros"), "/launch", "/gazebo.launch.py"]
+            os.path.join(gazebo_ros_dir, 'launch', 'gzserver.launch.py')
         ),
         launch_arguments={
             "gui": gazebo_gui,
-            'world': world,
+            "world": world,
         }.items(),
+    )
+
+    gazebo_client = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(gazebo_ros_dir, 'launch', 'gzclient.launch.py')
+        )
     )
 
     # Spawn robot
@@ -181,7 +188,8 @@ def launch_setup(context, *args, **kwargs):
         delay_rviz_after_joint_state_broadcaster_spawner,
         initial_joint_controller_spawner_stopped,
         initial_joint_controller_spawner_started,
-        gazebo,
+        gazebo_server,
+        gazebo_client,
         gazebo_spawn_robot,
     ]
 
